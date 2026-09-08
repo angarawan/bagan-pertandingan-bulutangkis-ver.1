@@ -1,0 +1,1546 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Bagan & Turnamen Bulutangkis</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                50: '#ecfdf5',
+                100: '#d1fae5',
+                500: '#10b981',
+                600: '#059669',
+                700: '#047857',
+                800: '#065f46',
+                900: '#064e3b',
+              },
+              court: {
+                bg: '#0f172a',
+                card: '#1e293b',
+                border: '#334155',
+                accent: '#10b981',
+                gold: '#f59e0b'
+              }
+            }
+          }
+        }
+      }
+    </script>
+    <!-- React & ReactDOM CDN -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel Standalone for React JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+      body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background-color: #0f172a;
+        color: #f8fafc;
+      }
+      ::-webkit-scrollbar { width: 8px; height: 8px; }
+      ::-webkit-scrollbar-track { background: #0f172a; }
+      ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+      ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+      @media print {
+        .no-print { display: none !important; }
+        .print-only { display: block !important; }
+        body, #root, main, div, header { 
+          background-color: #ffffff !important; 
+          background: #ffffff !important; 
+          color: #0f172a !important; 
+        }
+        .print-card { background: #ffffff !important; border: 1px solid #94a3b8 !important; color: #0f172a !important; }
+        .print-text { color: #0f172a !important; }
+
+        /* Force dark background elements to white for ink-saving printing */
+        .bg-slate-800, .bg-slate-900, .bg-slate-950, .bg-slate-800\/80, .bg-slate-800\/90, .bg-slate-900\/60, .bg-slate-900\/80, .bg-emerald-950\/40 {
+          background-color: #ffffff !important;
+          background: #ffffff !important;
+        }
+        .border, .border-slate-700, .border-slate-800, .border-slate-600, .border-slate-700\/80, .border-slate-700\/60 {
+          border-color: #64748b !important;
+        }
+        .text-white, .text-slate-100, .text-slate-200, .text-slate-300, .text-slate-400, .text-amber-300, .text-amber-400 {
+          color: #0f172a !important;
+        }
+        .text-emerald-400, .text-emerald-300, .text-emerald-500 {
+          color: #047857 !important;
+          font-weight: 700 !important;
+        }
+        .border-emerald-500\/50, .border-emerald-500, .border-amber-500 {
+          border-color: #334155 !important;
+        }
+        .shadow-md, .shadow-lg, .shadow-xl, .shadow-2xl {
+          box-shadow: none !important;
+        }
+        .overflow-x-auto {
+          overflow: visible !important;
+        }
+        @page {
+          size: landscape;
+          margin: 1cm;
+        }
+      }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-900 text-slate-100 flex flex-col antialiased selection:bg-emerald-500 selection:text-white">
+    <div id="root"></div>
+
+    <script type="text/babel">
+      const { useState, useEffect, useMemo, useRef } = React;
+
+      // Custom SVG Icons Component Bundle
+      const Icons = {
+        Trophy: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2 0h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>,
+        Shuttlecock: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="18" r="3" strokeWidth="2"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15L6 3h12l-6 12zM9 9h6"/></svg>,
+        Users: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 100 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>,
+        Layout: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>,
+        Calendar: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>,
+        Plus: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"/></svg>,
+        Trash: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>,
+        Edit: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>,
+        Check: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"/></svg>,
+        Refresh: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>,
+        Download: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>,
+        Upload: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>,
+        Print: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>,
+        Court: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" strokeWidth="2"/><line x1="12" y1="4" x2="12" y2="20" strokeWidth="2"/><line x1="3" y1="12" x2="21" y2="12" strokeWidth="1" strokeDasharray="2 2"/></svg>,
+        Play: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>,
+        Close: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>,
+        Up: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7"/></svg>,
+        Down: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"/></svg>
+      };
+
+      const DEFAULT_PLAYERS = [
+        { id: 'p1', name: 'Anthony Ginting', club: '', seed: null },
+        { id: 'p2', name: 'Jonatan Christie', club: '', seed: null },
+        { id: 'p3', name: 'Chico Aura Dwi', club: '', seed: null },
+        { id: 'p4', name: 'Alwi Farhan', club: '', seed: null },
+        { id: 'p5', name: 'Viktor Axelsen', club: '', seed: null },
+        { id: 'p6', name: 'Shi Yuqi', club: '', seed: null },
+        { id: 'p7', name: 'Kunlavut Vitidsarn', club: '', seed: null },
+        { id: 'p8', name: 'Loh Kean Yew', club: '', seed: null },
+      ];
+
+      // Helper: Generate Single Elimination Matches with Exact Typing Order & Auto BYE Advancement
+      function generateKnockoutBracket(playerList, includeThirdPlace = true) {
+        if (!playerList || playerList.length < 2) return [];
+
+        // Normalize player list: mark any player typed as 'BYE' as an automatic BYE player
+        const normalizedPlayers = playerList.map(p => {
+          const isTypedBye = p.name && p.name.trim().toUpperCase() === 'BYE';
+          return {
+            ...p,
+            isBye: isTypedBye || !!p.isBye
+          };
+        });
+
+        const n = normalizedPlayers.length;
+        let powerOfTwo = 2;
+        while (powerOfTwo < n) {
+          powerOfTwo *= 2;
+        }
+
+        // NO SHUFFLING: Place players STRICTLY in the exact order typed (Top to Bottom)
+        let bracketArray = new Array(powerOfTwo).fill(null);
+        for (let i = 0; i < powerOfTwo; i++) {
+          if (i < n) {
+            bracketArray[i] = normalizedPlayers[i];
+          } else {
+            bracketArray[i] = { id: `BYE_${i}`, name: 'BYE', club: '', isBye: true };
+          }
+        }
+
+        const totalRounds = Math.log2(powerOfTwo);
+        let matches = [];
+        let roundMatchesMap = {};
+
+        // Generate empty match structures for all rounds
+        for (let r = 1; r <= totalRounds; r++) {
+          roundMatchesMap[r] = [];
+          const numMatches = powerOfTwo / Math.pow(2, r);
+
+          for (let i = 0; i < numMatches; i++) {
+            const match = {
+              id: `m_${r}_${i + 1}`,
+              round: r,
+              matchNo: null,
+              player1Id: r === 1 ? (bracketArray[i * 2] ? bracketArray[i * 2].id : null) : null,
+              player2Id: r === 1 ? (bracketArray[i * 2 + 1] ? bracketArray[i * 2 + 1].id : null) : null,
+              score1: [0, 0, 0],
+              score2: [0, 0, 0],
+              winnerId: null,
+              status: 'upcoming',
+              court: null,
+              nextMatchId: null,
+              nextSlot: null,
+              isThirdPlace: false,
+              isByeMatch: false
+            };
+            roundMatchesMap[r].push(match);
+            matches.push(match);
+          }
+        }
+
+        // Link matches to next round slots
+        for (let r = 1; r < totalRounds; r++) {
+          const currentRoundMatches = roundMatchesMap[r];
+          const nextRoundMatches = roundMatchesMap[r + 1];
+
+          for (let i = 0; i < currentRoundMatches.length; i++) {
+            const targetIndex = Math.floor(i / 2);
+            const targetSlot = (i % 2 === 0) ? 'player1Id' : 'player2Id';
+
+            currentRoundMatches[i].nextMatchId = nextRoundMatches[targetIndex].id;
+            currentRoundMatches[i].nextSlot = targetSlot;
+          }
+        }
+
+        // Helper to resolve player or BYE object
+        const getPlayerObj = (id) => {
+          if (!id) return null;
+          if (id === 'BYE' || id.startsWith('BYE_')) return { id: id, name: 'BYE', isBye: true };
+          return normalizedPlayers.find(p => p.id === id) || null;
+        };
+
+        // Multi-pass BYE resolution and automatic advancement ("pindah langsung ke sebelah/depan")
+        let changed = true;
+        while (changed) {
+          changed = false;
+          for (let r = 1; r <= totalRounds; r++) {
+            const currentRoundMatches = roundMatchesMap[r];
+            for (let i = 0; i < currentRoundMatches.length; i++) {
+              const m = currentRoundMatches[i];
+              if (m.winnerId) continue; // Already resolved
+
+              const p1 = getPlayerObj(m.player1Id);
+              const p2 = getPlayerObj(m.player2Id);
+
+              const isP1Bye = p1 && (p1.isBye || p1.name.trim().toUpperCase() === 'BYE');
+              const isP2Bye = p2 && (p2.isBye || p2.name.trim().toUpperCase() === 'BYE');
+
+              // Automatic BYE advancement when facing a BYE
+              if (p1 && !isP1Bye && isP2Bye) {
+                m.winnerId = p1.id;
+                m.status = 'completed';
+                m.isByeMatch = true;
+                changed = true;
+              } else if (p2 && !isP2Bye && isP1Bye) {
+                m.winnerId = p2.id;
+                m.status = 'completed';
+                m.isByeMatch = true;
+                changed = true;
+              } else if (isP1Bye && isP2Bye) {
+                m.winnerId = 'BYE';
+                m.status = 'completed';
+                m.isByeMatch = true;
+                changed = true;
+              }
+
+              // Instantly propagate winner to next round slot ("pindah ke sebelah")
+              if (m.winnerId && m.nextMatchId && m.nextSlot) {
+                const targetMatch = matches.find(x => x.id === m.nextMatchId);
+                if (targetMatch && targetMatch[m.nextSlot] !== m.winnerId) {
+                  targetMatch[m.nextSlot] = m.winnerId;
+                  changed = true;
+                }
+              }
+            }
+          }
+        }
+
+        // Assign Sequential Match Numbers ONLY to playable matches (skipping BYE matches)
+        let matchCounter = 1;
+        for (let r = 1; r <= totalRounds; r++) {
+          roundMatchesMap[r].forEach(m => {
+            if (!m.isByeMatch) {
+              m.matchNo = matchCounter++;
+            }
+          });
+        }
+
+        // Add 3rd Place Match if required
+        if (includeThirdPlace && totalRounds >= 2) {
+          const thirdMatch = {
+            id: `m_third_place`,
+            round: totalRounds,
+            matchNo: matchCounter++,
+            player1Id: null,
+            player2Id: null,
+            score1: [0, 0, 0],
+            score2: [0, 0, 0],
+            winnerId: null,
+            status: 'upcoming',
+            court: null,
+            nextMatchId: null,
+            nextSlot: null,
+            isThirdPlace: true,
+            isByeMatch: false
+          };
+          matches.push(thirdMatch);
+        }
+
+        return matches;
+      }
+
+      function generateGroups(playerList, groupCount = 2) {
+        let groups = [];
+        for (let i = 0; i < groupCount; i++) {
+          const groupName = String.fromCharCode(65 + i); // Group A, Group B...
+          groups.push({ id: `g_${i}`, name: `Grup ${groupName}`, playerIds: [] });
+        }
+
+        // Snake distribution of players
+        playerList.forEach((player, idx) => {
+          const groupIdx = idx % groupCount;
+          groups[groupIdx].playerIds.push(player.id);
+        });
+
+        // Generate round robin matches within groups
+        let groupMatches = [];
+        let matchCounter = 500;
+
+        groups.forEach(g => {
+          const pIds = g.playerIds;
+          for (let i = 0; i < pIds.length; i++) {
+            for (let j = i + 1; j < pIds.length; j++) {
+              groupMatches.push({
+                id: `gm_${matchCounter++}`,
+                groupId: g.id,
+                groupName: g.name,
+                player1Id: pIds[i],
+                player2Id: pIds[j],
+                score1: [0, 0, 0],
+                score2: [0, 0, 0],
+                winnerId: null,
+                status: 'upcoming',
+                court: null
+              });
+            }
+          }
+        });
+
+        return { groups, groupMatches };
+      }
+
+      function App() {
+        const [activeTab, setActiveTab] = useState('bracket'); // bracket, schedule, groups, players
+        const [showSetupModal, setShowSetupModal] = useState(false);
+        const [showScoreModal, setShowScoreModal] = useState(null); // match object
+        const [toastMessage, setToastMessage] = useState(null);
+
+        // Tournament Metadata State
+        const [tournament, setTournament] = useState(() => {
+          const saved = localStorage.getItem('badminton_tournament_data');
+          if (saved) {
+            try { return JSON.parse(saved).tournament; } catch(e){}
+          }
+          return {
+            title: 'Kejuaraan Bulutangkis Open 2026',
+            category: 'Tunggal Putra',
+            format: 'knockout', // 'knockout' | 'group_knockout'
+            courtCount: 3,
+            date: '2026-09-15',
+            location: 'GOR Bulutangkis Utama',
+            thirdPlaceMatch: true
+          };
+        });
+
+        // Players List State
+        const [players, setPlayers] = useState(() => {
+          const saved = localStorage.getItem('badminton_tournament_data');
+          if (saved) {
+            try { return JSON.parse(saved).players; } catch(e){}
+          }
+          return DEFAULT_PLAYERS;
+        });
+
+        // Matches State
+        const [matches, setMatches] = useState(() => {
+          const saved = localStorage.getItem('badminton_tournament_data');
+          if (saved) {
+            try { return JSON.parse(saved).matches; } catch(e){}
+          }
+          return generateKnockoutBracket(DEFAULT_PLAYERS, true);
+        });
+
+        // Group Stage Data
+        const [groupsData, setGroupsData] = useState(() => {
+          const saved = localStorage.getItem('badminton_tournament_data');
+          if (saved) {
+            try { return JSON.parse(saved).groupsData || { groups: [], groupMatches: [] }; } catch(e){}
+          }
+          return { groups: [], groupMatches: [] };
+        });
+
+        // Auto Save to LocalStorage
+        useEffect(() => {
+          const payload = { tournament, players, matches, groupsData };
+          localStorage.setItem('badminton_tournament_data', JSON.stringify(payload));
+        }, [tournament, players, matches, groupsData]);
+
+        // Helper Toast Function
+        const notify = (msg) => {
+          setToastMessage(msg);
+          setTimeout(() => setToastMessage(null), 3000);
+        };
+
+        const handleSaveScore = (matchId, score1, score2, winnerId, court, status) => {
+          if (tournament.format === 'knockout' || activeTab === 'bracket') {
+            setMatches(prevMatches => {
+              let updated = prevMatches.map(m => {
+                if (m.id === matchId) {
+                  return { ...m, score1, score2, winnerId, court, status };
+                }
+                return m;
+              });
+
+              const currentMatch = updated.find(m => m.id === matchId);
+              if (!currentMatch) return updated;
+
+              // Propagate winner to next round match
+              if (currentMatch.nextMatchId && currentMatch.nextSlot && winnerId) {
+                updated = updated.map(m => {
+                  if (m.id === currentMatch.nextMatchId) {
+                    return { ...m, [currentMatch.nextSlot]: winnerId };
+                  }
+                  return m;
+                });
+              }
+
+              // Propagate losers to 3rd place match if semifinal completed
+              const maxRound = Math.max(...updated.filter(x => !x.isThirdPlace).map(x => x.round));
+              if (tournament.thirdPlaceMatch && currentMatch.round === maxRound - 1) {
+                const loserId = (winnerId === currentMatch.player1Id) ? currentMatch.player2Id : currentMatch.player1Id;
+                const semiMatches = updated.filter(x => x.round === maxRound - 1 && !x.isThirdPlace);
+                const isFirstSemi = semiMatches[0]?.id === matchId;
+                const thirdSlot = isFirstSemi ? 'player1Id' : 'player2Id';
+
+                if (loserId) {
+                  updated = updated.map(m => {
+                    if (m.isThirdPlace) {
+                      return { ...m, [thirdSlot]: loserId };
+                    }
+                    return m;
+                  });
+                }
+              }
+
+              return updated;
+            });
+          } else {
+            // Group Stage match update
+            setGroupsData(prev => {
+              const newMatches = prev.groupMatches.map(gm => {
+                if (gm.id === matchId) {
+                  return { ...gm, score1, score2, winnerId, court, status };
+                }
+                return gm;
+              });
+              return { ...prev, groupMatches: newMatches };
+            });
+          }
+
+          setShowScoreModal(null);
+          notify('Skor pertandingan berhasil diperbarui!');
+        };
+
+        const handleCreateNewTournament = (config, newPlayers) => {
+          setTournament(config);
+          setPlayers(newPlayers);
+
+          if (config.format === 'knockout') {
+            const newMatches = generateKnockoutBracket(newPlayers, config.thirdPlaceMatch);
+            setMatches(newMatches);
+            setGroupsData({ groups: [], groupMatches: [] });
+            setActiveTab('bracket');
+          } else {
+            const groupRes = generateGroups(newPlayers, config.groupCount || 2);
+            setGroupsData(groupRes);
+            const initialKnockout = generateKnockoutBracket([], config.thirdPlaceMatch);
+            setMatches(initialKnockout);
+            setActiveTab('groups');
+          }
+
+          setShowSetupModal(false);
+          notify('Turnamen baru berhasil dibuat!');
+        };
+
+        // Export JSON Data
+        const handleExportJSON = () => {
+          const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ tournament, players, matches, groupsData }, null, 2));
+          const dlAnchor = document.createElement('a');
+          dlAnchor.setAttribute("href", dataStr);
+          dlAnchor.setAttribute("download", `badminton_bracket_${tournament.title.replace(/\s+/g, '_')}.json`);
+          document.body.appendChild(dlAnchor);
+          dlAnchor.click();
+          dlAnchor.remove();
+          notify('Data turnamen berhasil diunduh!');
+        };
+
+        // Import JSON Data
+        const handleImportJSON = (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            try {
+              const imported = JSON.parse(event.target.result);
+              if (imported.tournament && imported.players && imported.matches) {
+                setTournament(imported.tournament);
+                setPlayers(imported.players);
+                setMatches(imported.matches);
+                if (imported.groupsData) setGroupsData(imported.groupsData);
+                notify('Data turnamen berhasil dimuat!');
+              }
+            } catch (err) {
+              notify('Gagal membaca file JSON turnamen!');
+            }
+          };
+          reader.readAsText(file);
+        };
+
+        return (
+          <div className="flex-1 flex flex-col min-h-screen">
+            {/* Header Navigation Bar */}
+            <header className="bg-slate-800/90 backdrop-blur border-b border-slate-700 sticky top-0 z-30 no-print">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="flex items-center justify-between h-16">
+                  {/* Title & Badge */}
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl border border-emerald-500/30">
+                      <Icons.Shuttlecock />
+                    </div>
+                    <div>
+                      <h1 className="text-lg font-bold text-white tracking-wide flex items-center gap-2">
+                        {tournament.title}
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                          {tournament.category}
+                        </span>
+                      </h1>
+                      <p className="text-xs text-slate-400 flex items-center gap-3">
+                        <span><Icons.Calendar /> {tournament.date}</span>
+                        <span>• {tournament.location}</span>
+                        <span>• {players.length} Peserta</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Right Action Buttons */}
+                  <div className="flex items-center space-x-2">
+                    <button 
+                      onClick={() => setShowSetupModal(true)}
+                      className="px-3 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors flex items-center gap-1.5 shadow-lg shadow-emerald-900/20"
+                    >
+                      <Icons.Plus /> Turnamen Baru
+                    </button>
+                    
+                    <button 
+                      onClick={handleExportJSON}
+                      title="Simpan File JSON"
+                      className="p-2 text-slate-300 hover:text-white bg-slate-700/50 hover:bg-slate-700 rounded-lg border border-slate-600 transition-colors"
+                    >
+                      <Icons.Download />
+                    </button>
+
+                    <label title="Muat File JSON" className="p-2 text-slate-300 hover:text-white bg-slate-700/50 hover:bg-slate-700 rounded-lg border border-slate-600 transition-colors cursor-pointer">
+                      <Icons.Upload />
+                      <input type="file" accept=".json" onChange={handleImportJSON} className="hidden" />
+                    </label>
+
+                    <button 
+                      onClick={() => window.print()} 
+                      title="Cetak / Download PDF"
+                      className="p-2 text-slate-300 hover:text-white bg-slate-700/50 hover:bg-slate-700 rounded-lg border border-slate-600 transition-colors"
+                    >
+                      <Icons.Print />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Nav Tabs */}
+                <div className="flex space-x-1 border-t border-slate-700/60 pt-2 overflow-x-auto">
+                  <button 
+                    onClick={() => setActiveTab('bracket')}
+                    className={`px-4 py-2 text-xs font-medium rounded-t-lg transition-colors flex items-center gap-2 border-b-2 whitespace-nowrap ${activeTab === 'bracket' ? 'border-emerald-500 text-emerald-400 bg-slate-800' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
+                  >
+                    <Icons.Layout /> Bagan Pertandingan (Knockout)
+                  </button>
+
+                  {tournament.format === 'group_knockout' && (
+                    <button 
+                      onClick={() => setActiveTab('groups')}
+                      className={`px-4 py-2 text-xs font-medium rounded-t-lg transition-colors flex items-center gap-2 border-b-2 whitespace-nowrap ${activeTab === 'groups' ? 'border-emerald-500 text-emerald-400 bg-slate-800' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
+                    >
+                      <Icons.Trophy /> Babak Grup & Klasemen
+                    </button>
+                  )}
+
+                  <button 
+                    onClick={() => setActiveTab('schedule')}
+                    className={`px-4 py-2 text-xs font-medium rounded-t-lg transition-colors flex items-center gap-2 border-b-2 whitespace-nowrap ${activeTab === 'schedule' ? 'border-emerald-500 text-emerald-400 bg-slate-800' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
+                  >
+                    <Icons.Court /> Monitor Lapangan & Jadwal
+                  </button>
+
+                  <button 
+                    onClick={() => setActiveTab('players')}
+                    className={`px-4 py-2 text-xs font-medium rounded-t-lg transition-colors flex items-center gap-2 border-b-2 whitespace-nowrap ${activeTab === 'players' ? 'border-emerald-500 text-emerald-400 bg-slate-800' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
+                  >
+                    <Icons.Users /> Daftar Pemain ({players.length})
+                  </button>
+                </div>
+              </div>
+            </header>
+
+            {/* Notification Banner */}
+            {toastMessage && (
+              <div className="fixed bottom-5 right-5 z-50 bg-emerald-600 text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 text-sm font-semibold border border-emerald-400 animate-bounce">
+                <Icons.Check /> {toastMessage}
+              </div>
+            )}
+
+            {/* Main Content Area */}
+            <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+              {activeTab === 'bracket' && (
+                <BracketView 
+                  matches={matches} 
+                  players={players} 
+                  onMatchClick={(match) => setShowScoreModal(match)} 
+                />
+              )}
+
+              {activeTab === 'groups' && (
+                <GroupStandingsView 
+                  groupsData={groupsData} 
+                  players={players} 
+                  onMatchClick={(match) => setShowScoreModal(match)}
+                  onAdvanceToKnockout={(qualifiedPlayerIds) => {
+                    const qualified = players.filter(p => qualifiedPlayerIds.includes(p.id));
+                    const newBracketMatches = generateKnockoutBracket(qualified, tournament.thirdPlaceMatch);
+                    setMatches(newBracketMatches);
+                    setActiveTab('bracket');
+                    notify('Babak Gugur berhasil dibuat dari pemenang grup!');
+                  }}
+                />
+              )}
+
+              {activeTab === 'schedule' && (
+                <CourtScheduleView 
+                  courtCount={tournament.courtCount} 
+                  matches={[...matches, ...(groupsData.groupMatches || [])]} 
+                  players={players}
+                  onMatchClick={(match) => setShowScoreModal(match)}
+                />
+              )}
+
+              {activeTab === 'players' && (
+                <PlayerManagementView 
+                  players={players} 
+                  setPlayers={setPlayers}
+                  onRegenerate={() => {
+                    if (tournament.format === 'knockout') {
+                      setMatches(generateKnockoutBracket(players, tournament.thirdPlaceMatch));
+                    } else {
+                      setGroupsData(generateGroups(players, tournament.groupCount || 2));
+                    }
+                    notify('Bagan diperbarui sesuai daftar pemain!');
+                  }}
+                />
+              )}
+            </main>
+
+            {/* Score Editor Modal */}
+            {showScoreModal && (
+              <ScoreModal 
+                match={showScoreModal} 
+                players={players} 
+                courtCount={tournament.courtCount}
+                onClose={() => setShowScoreModal(null)} 
+                onSave={handleSaveScore} 
+              />
+            )}
+
+            {/* Setup Tournament Wizard Modal */}
+            {showSetupModal && (
+              <SetupWizard 
+                initialConfig={tournament} 
+                initialPlayers={players}
+                onClose={() => setShowSetupModal(false)} 
+                onCreate={handleCreateNewTournament} 
+              />
+            )}
+          </div>
+        );
+      }
+
+      function BracketView({ matches, players, onMatchClick }) {
+        const getPlayer = (id) => {
+          if (id === 'BYE') return { name: 'BYE', club: '-', isBye: true };
+          return players.find(p => p.id === id) || { name: 'Belum ditentukan', club: '', isTBD: true };
+        };
+
+        // Group matches by round
+        const rounds = useMemo(() => {
+          const map = {};
+          matches.filter(m => !m.isThirdPlace).forEach(m => {
+            if (!map[m.round]) map[m.round] = [];
+            map[m.round].push(m);
+          });
+          return map;
+        }, [matches]);
+
+        const thirdPlaceMatch = matches.find(m => m.isThirdPlace);
+        const roundKeys = Object.keys(rounds).map(Number).sort((a, b) => a - b);
+        const totalRounds = roundKeys.length;
+
+        const getRoundTitle = (roundNum, total) => {
+          if (roundNum === total) return 'FINAL';
+          if (roundNum === total - 1) return 'SEMI FINAL';
+          if (roundNum === total - 2) return 'PEREMPAT FINAL';
+          return `BABAK ${roundNum}`;
+        };
+
+        // Champion
+        const finalMatch = matches.find(m => m.round === totalRounds && !m.isThirdPlace);
+        const champion = finalMatch && finalMatch.winnerId ? getPlayer(finalMatch.winnerId) : null;
+
+        // Expanded slot height in pixels for Round 1 to avoid cluttering in early rounds
+        const BASE_SLOT_HEIGHT = 140;
+
+        return (
+          <div className="space-y-6">
+            {/* Champion Banner */}
+            {champion && !champion.isTBD && !champion.isBye && (
+              <div className="bg-gradient-to-r from-amber-500/20 via-yellow-500/10 to-amber-500/20 border border-amber-500/40 rounded-2xl p-6 text-center shadow-xl animate-fade-in print:bg-white print:border-slate-400">
+                <div className="inline-flex p-3 bg-amber-500/20 text-amber-400 rounded-full mb-2 print:text-amber-600">
+                  <Icons.Trophy />
+                </div>
+                <h2 className="text-2xl font-extrabold text-amber-300 print:text-amber-700">JUARA TURNAMEN</h2>
+                <p className="text-xl font-bold text-white print:text-slate-900 mt-1">{champion.name}</p>
+                <p className="text-xs text-amber-400/80 print:text-slate-600 font-medium">{champion.club}</p>
+              </div>
+            )}
+
+            {/* Scrollable Aligned Bracket Tree Area */}
+            <div className="overflow-x-auto pb-8 pt-2">
+              <div className="inline-flex min-w-full space-x-8 items-start px-2 py-4">
+                {roundKeys.map(rNum => {
+                  const roundMatchesList = rounds[rNum];
+                  // Slot height doubles each round to keep match cards centered with feeder matches
+                  const slotHeight = BASE_SLOT_HEIGHT * Math.pow(2, rNum - 1);
+
+                  return (
+                    <div key={rNum} className="flex-1 min-w-[210px] flex flex-col">
+                      {/* Round Header */}
+                      <div className="bg-slate-800/80 border border-slate-700/80 rounded-xl p-2 text-center mb-3 print:bg-white print:border-slate-400">
+                        <h3 className="text-xs font-bold text-emerald-400 print:text-emerald-700 tracking-wider uppercase">
+                          {getRoundTitle(rNum, totalRounds)}
+                        </h3>
+                        <p className="text-[10px] text-slate-400 print:text-slate-600 mt-0.5">{roundMatchesList.length} Pertandingan</p>
+                      </div>
+
+                      {/* Aligned Match Slots Container */}
+                      <div className="flex flex-col">
+                        {roundMatchesList.map((match, matchIndex) => {
+                          const p1 = getPlayer(match.player1Id);
+                          const p2 = getPlayer(match.player2Id);
+                          const isCompleted = match.status === 'completed';
+                          const isLive = match.status === 'live';
+
+                          return (
+                            <div 
+                              key={match.id}
+                              style={{ height: `${slotHeight}px` }}
+                              className="relative flex flex-col justify-center items-center my-1"
+                            >
+                              {/* Connector Lines to Next Round */}
+                              {rNum < totalRounds && (
+                                <div className="absolute right-0 top-0 bottom-0 w-4 pointer-events-none translate-x-full z-10">
+                                  {matchIndex % 2 === 0 ? (
+                                    <div className="absolute top-1/2 left-0 w-full h-1/2 border-t-2 border-r-2 border-emerald-500/80 print:border-slate-800 rounded-tr-md" />
+                                  ) : (
+                                    <div className="absolute bottom-1/2 left-0 w-full h-1/2 border-b-2 border-r-2 border-emerald-500/80 print:border-slate-800 rounded-br-md" />
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Incoming Line from Previous Round */}
+                              {rNum > 1 && (
+                                <div className="absolute left-0 top-1/2 w-4 -translate-x-full border-t-2 border-emerald-500/80 print:border-slate-800 pointer-events-none z-10" />
+                              )}
+
+                              {/* Compact Match Card Box */}
+                              <div 
+                                onClick={() => !match.isByeMatch && !p1.isTBD && !p2.isTBD && onMatchClick(match)}
+                                className={`w-full relative bg-white border-2 rounded-lg p-2 transition-all shadow-sm print:border-slate-400 ${
+                                  match.isByeMatch 
+                                    ? 'border-slate-300 bg-slate-50/80 cursor-default opacity-90' 
+                                    : 'cursor-pointer hover:shadow-md hover:border-emerald-500'
+                                } ${
+                                  isLive ? 'border-amber-500 ring-2 ring-amber-400/40' : isCompleted && !match.isByeMatch ? 'border-emerald-600/70' : 'border-slate-300'
+                                }`}
+                              >
+                                {/* Match Header Tag */}
+                                <div className="flex justify-between items-center text-[10px] text-slate-500 mb-1 border-b border-slate-200 pb-1">
+                                  <div className="flex items-center gap-1.5">
+                                    {match.court && <span className="text-emerald-700 font-bold">Lap. {match.court}</span>}
+                                    {isLive && <span className="bg-amber-100 text-amber-800 px-1 py-0.2 rounded font-bold animate-pulse text-[9px]">LIVE</span>}
+                                    {isCompleted && !match.isByeMatch && <span className="text-emerald-700 font-bold text-[9px]">SELESAI</span>}
+                                    {match.isByeMatch && <span className="text-slate-600 font-bold text-[9px] bg-slate-200 px-1.5 py-0.5 rounded">BYE (Lolos Otomatis)</span>}
+                                  </div>
+                                  <span className="font-bold text-slate-700">
+                                    {match.isByeMatch ? 'BYE' : `Match #${match.matchNo}`}
+                                  </span>
+                                </div>
+
+                                {/* Player 1 Slot */}
+                                <div className={`flex items-center justify-between px-2 py-1 rounded transition-colors mb-1 ${
+                                  match.winnerId === p1.id ? 'bg-emerald-100 text-emerald-950 font-bold border border-emerald-300' : 'bg-slate-100 text-slate-800'
+                                }`}>
+                                  <div className="flex items-center gap-1.5 overflow-hidden">
+                                    {p1.seed && <span className="text-[9px] bg-slate-200 text-slate-700 px-1 rounded font-semibold">[{p1.seed}]</span>}
+                                    <div className="truncate">
+                                      <p className="text-[11px] truncate font-semibold text-slate-900">{p1.name}</p>
+                                      {p1.club && p1.club !== '-' && <p className="text-[9px] text-slate-500 truncate">{p1.club}</p>}
+                                    </div>
+                                  </div>
+                                  {!p1.isBye && !p1.isTBD && !match.isByeMatch && (
+                                    <div className="flex space-x-0.5 text-[11px] font-mono font-bold text-slate-900 ml-1">
+                                      <span>{match.score1[0]}</span>
+                                      {match.score1[1] > 0 && <span>-{match.score1[1]}</span>}
+                                      {match.score1[2] > 0 && <span>-{match.score1[2]}</span>}
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Player 2 Slot */}
+                                <div className={`flex items-center justify-between px-2 py-1 rounded transition-colors ${
+                                  match.winnerId === p2.id ? 'bg-emerald-100 text-emerald-950 font-bold border border-emerald-300' : 'bg-slate-100 text-slate-800'
+                                }`}>
+                                  <div className="flex items-center gap-1.5 overflow-hidden">
+                                    {p2.seed && <span className="text-[9px] bg-slate-200 text-slate-700 px-1 rounded font-semibold">[{p2.seed}]</span>}
+                                    <div className="truncate">
+                                      <p className="text-[11px] truncate font-semibold text-slate-900">{p2.name}</p>
+                                      {p2.club && p2.club !== '-' && <p className="text-[9px] text-slate-500 truncate">{p2.club}</p>}
+                                    </div>
+                                  </div>
+                                  {!p2.isBye && !p2.isTBD && !match.isByeMatch && (
+                                    <div className="flex space-x-0.5 text-[11px] font-mono font-bold text-slate-900 ml-1">
+                                      <span>{match.score2[0]}</span>
+                                      {match.score2[1] > 0 && <span>-{match.score2[1]}</span>}
+                                      {match.score2[2] > 0 && <span>-{match.score2[2]}</span>}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Third Place Match Card */}
+            {thirdPlaceMatch && (
+              <div className="mt-6 max-w-sm mx-auto bg-slate-800/90 border border-amber-500/30 rounded-xl p-3 text-center print:bg-white print:border-slate-400">
+                <h4 className="text-xs font-bold text-amber-400 print:text-amber-700 uppercase tracking-wider mb-2">PEREBUTAN JUARA 3</h4>
+                <div 
+                  onClick={() => onMatchClick(thirdPlaceMatch)}
+                  className="bg-white p-2 rounded-lg border-2 border-slate-300 hover:border-amber-500 cursor-pointer transition-all"
+                >
+                  <div className="flex justify-between items-center text-xs text-slate-900">
+                    <span className="font-semibold">{getPlayer(thirdPlaceMatch.player1Id).name}</span>
+                    <span className="font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      {thirdPlaceMatch.score1.join('-')} vs {thirdPlaceMatch.score2.join('-')}
+                    </span>
+                    <span className="font-semibold">{getPlayer(thirdPlaceMatch.player2Id).name}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      function GroupStandingsView({ groupsData, players, onMatchClick, onAdvanceToKnockout }) {
+        const getPlayer = (id) => players.find(p => p.id === id) || { name: 'Unassigned', club: '' };
+
+        // Calculate Standings Table for Each Group
+        const groupTables = useMemo(() => {
+          if (!groupsData.groups) return {};
+
+          let tables = {};
+          groupsData.groups.forEach(g => {
+            let stats = {};
+            g.playerIds.forEach(pId => {
+              stats[pId] = { id: pId, played: 0, won: 0, lost: 0, setsWon: 0, setsLost: 0, ptsWon: 0, ptsLost: 0 };
+            });
+
+            // Calculate scores from group matches
+            const gMatches = groupsData.groupMatches.filter(m => m.groupId === g.id && m.status === 'completed');
+            gMatches.forEach(m => {
+              const p1 = m.player1Id;
+              const p2 = m.player2Id;
+              if (!stats[p1] || !stats[p2]) return;
+
+              stats[p1].played += 1;
+              stats[p2].played += 1;
+
+              // Sets won
+              let s1Won = 0, s2Won = 0;
+              for (let i = 0; i < 3; i++) {
+                stats[p1].ptsWon += m.score1[i] || 0;
+                stats[p1].ptsLost += m.score2[i] || 0;
+                stats[p2].ptsWon += m.score2[i] || 0;
+                stats[p2].ptsLost += m.score1[i] || 0;
+
+                if (m.score1[i] > m.score2[i] && m.score1[i] >= 21) s1Won++;
+                if (m.score2[i] > m.score1[i] && m.score2[i] >= 21) s2Won++;
+              }
+
+              stats[p1].setsWon += s1Won;
+              stats[p1].setsLost += s2Won;
+              stats[p2].setsWon += s2Won;
+              stats[p2].setsLost += s1Won;
+
+              if (m.winnerId === p1) {
+                stats[p1].won += 1;
+                stats[p2].lost += 1;
+              } else if (m.winnerId === p2) {
+                stats[p2].won += 1;
+                stats[p1].lost += 1;
+              }
+            });
+
+            // Convert to sorted array
+            tables[g.id] = Object.values(stats).sort((a, b) => {
+              if (b.won !== a.won) return b.won - a.won;
+              const aSetDiff = a.setsWon - a.setsLost;
+              const bSetDiff = b.setsWon - b.setsLost;
+              if (bSetDiff !== aSetDiff) return bSetDiff - aSetDiff;
+              return (b.ptsWon - b.ptsLost) - (a.ptsWon - a.ptsLost);
+            });
+          });
+
+          return tables;
+        }, [groupsData]);
+
+        // Qualified players selection for knockout round
+        const qualifiedPlayerIds = useMemo(() => {
+          let ids = [];
+          Object.values(groupTables).forEach(table => {
+            if (table[0]) ids.push(table[0].id); // Group Winner
+            if (table[1]) ids.push(table[1].id); // Group Runner-up
+          });
+          return ids;
+        }, [groupTables]);
+
+        return (
+          <div className="space-y-8">
+            <div className="flex justify-between items-center bg-slate-800 p-4 rounded-xl border border-slate-700">
+              <div>
+                <h3 className="text-base font-bold text-white">Babak Penyisihan Grup</h3>
+                <p className="text-xs text-slate-400">Pertandingan sistem setengah kompetisi (Round Robin)</p>
+              </div>
+              <button 
+                onClick={() => onAdvanceToKnockout(qualifiedPlayerIds)}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-colors shadow-lg"
+              >
+                Lanjutkan Ke Babak Gugur ({qualifiedPlayerIds.length} Lolos)
+              </button>
+            </div>
+
+            {/* Group Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {groupsData.groups.map(group => {
+                const table = groupTables[group.id] || [];
+                const gMatches = groupsData.groupMatches.filter(m => m.groupId === group.id);
+
+                return (
+                  <div key={group.id} className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden p-5 space-y-4">
+                    <h4 className="text-sm font-bold text-emerald-400 border-b border-slate-700 pb-2 flex justify-between">
+                      <span>{group.name}</span>
+                      <span className="text-xs text-slate-400">{table.length} Pemain</span>
+                    </h4>
+
+                    {/* Standings Table */}
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-slate-900/60 text-slate-400 uppercase text-[10px]">
+                          <tr>
+                            <th className="p-2">Pos</th>
+                            <th className="p-2">Pemain</th>
+                            <th className="p-2 text-center">M</th>
+                            <th className="p-2 text-center">K</th>
+                            <th className="p-2 text-center">Set</th>
+                            <th className="p-2 text-center">Poin</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-700/50">
+                          {table.map((row, idx) => {
+                            const p = getPlayer(row.id);
+                            return (
+                              <tr key={row.id} className={idx < 2 ? 'bg-emerald-950/20' : ''}>
+                                <td className="p-2 font-bold text-slate-400">#{idx + 1}</td>
+                                <td className="p-2">
+                                  <p className="font-semibold text-white">{p.name}</p>
+                                  {p.club && <p className="text-[10px] text-slate-400">{p.club}</p>}
+                                </td>
+                                <td className="p-2 text-center font-bold text-emerald-400">{row.won}</td>
+                                <td className="p-2 text-center text-slate-400">{row.lost}</td>
+                                <td className="p-2 text-center font-mono">{row.setsWon}-{row.setsLost}</td>
+                                <td className="p-2 text-center font-mono">{row.ptsWon - row.ptsLost > 0 ? `+${row.ptsWon - row.ptsLost}` : row.ptsWon - row.ptsLost}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Group Matches */}
+                    <div className="space-y-2 pt-2">
+                      <p className="text-[11px] font-bold text-slate-400 uppercase">Jadwal Pertandingan Grup</p>
+                      {gMatches.map(m => {
+                        const p1 = getPlayer(m.player1Id);
+                        const p2 = getPlayer(m.player2Id);
+                        return (
+                          <div 
+                            key={m.id}
+                            onClick={() => onMatchClick(m)}
+                            className="bg-slate-900 p-2.5 rounded-lg border border-slate-700/80 flex items-center justify-between text-xs hover:border-emerald-500/50 cursor-pointer"
+                          >
+                            <span className="font-medium text-slate-200 truncate w-1/3">{p1.name}</span>
+                            <span className="font-mono text-emerald-400 font-bold px-2 py-0.5 bg-slate-800 rounded border border-slate-700">
+                              {m.status === 'completed' ? `${m.score1.join('-')} vs ${m.score2.join('-')}` : 'VS'}
+                            </span>
+                            <span className="font-medium text-slate-200 truncate w-1/3 text-right">{p2.name}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      }
+
+      function CourtScheduleView({ courtCount, matches, players, onMatchClick }) {
+        const getPlayer = (id) => players.find(p => p.id === id) || { name: 'TBD' };
+
+        const courts = Array.from({ length: courtCount }, (_, i) => i + 1);
+
+        return (
+          <div className="space-y-6">
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <Icons.Court /> Monitor Lapangan Pertandingan
+            </h3>
+
+            {/* Courts Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {courts.map(courtNum => {
+                const liveMatch = matches.find(m => m.court === courtNum && m.status === 'live');
+                const upcomingForCourt = matches.filter(m => m.court === courtNum && m.status === 'upcoming');
+
+                return (
+                  <div key={courtNum} className="bg-slate-800 border border-slate-700 rounded-2xl p-5 space-y-4">
+                    <div className="flex justify-between items-center border-b border-slate-700 pb-3">
+                      <h4 className="font-bold text-white text-sm flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> LAPANGAN {courtNum}
+                      </h4>
+                      {liveMatch && <span className="bg-amber-500/20 text-amber-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-500/30 animate-pulse">SEDANG MAIN</span>}
+                    </div>
+
+                    {/* Active Match Card */}
+                    {liveMatch ? (
+                      <div 
+                        onClick={() => onMatchClick(liveMatch)}
+                        className="bg-slate-900 border border-amber-500/60 rounded-xl p-4 space-y-3 cursor-pointer shadow-lg hover:border-amber-400"
+                      >
+                        <div className="text-[10px] text-amber-400 font-semibold flex justify-between">
+                          <span>Match #{liveMatch.matchNo}</span>
+                          <span>Skor Live</span>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="font-bold text-white text-sm">{getPlayer(liveMatch.player1Id).name}</span>
+                            <span className="font-mono text-emerald-400 font-bold text-base">{liveMatch.score1.join(' - ')}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="font-bold text-white text-sm">{getPlayer(liveMatch.player2Id).name}</span>
+                            <span className="font-mono text-emerald-400 font-bold text-base">{liveMatch.score2.join(' - ')}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-slate-900/50 border border-dashed border-slate-700 rounded-xl p-6 text-center text-slate-500 text-xs">
+                        Lapangan Kosong / Siap Digunakan
+                      </div>
+                    )}
+
+                    {/* Queued Matches */}
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-bold uppercase text-slate-400">Antrean Pertandingan Berikutnya</p>
+                      {upcomingForCourt.length > 0 ? (
+                        upcomingForCourt.map(m => (
+                          <div key={m.id} onClick={() => onMatchClick(m)} className="p-2 bg-slate-900/80 rounded-lg text-xs flex justify-between cursor-pointer border border-slate-700/60 hover:border-slate-500">
+                            <span className="text-slate-300">#{m.matchNo} {getPlayer(m.player1Id).name} vs {getPlayer(m.player2Id).name}</span>
+                            <span className="text-slate-500 font-mono text-[10px]">TBD</span>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-[11px] text-slate-500 italic">Tidak ada antrean terdaftar.</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      }
+
+      function PlayerManagementView({ players, setPlayers, onRegenerate }) {
+        const [newName, setNewName] = useState('');
+        const [newClub, setNewClub] = useState('');
+        const [newSeed, setNewSeed] = useState('');
+        const [bulkText, setBulkText] = useState('');
+
+        const handleMoveUp = (index) => {
+          if (index === 0) return;
+          const newPlayers = [...players];
+          const temp = newPlayers[index - 1];
+          newPlayers[index - 1] = newPlayers[index];
+          newPlayers[index] = temp;
+          setPlayers(newPlayers);
+        };
+
+        const handleMoveDown = (index) => {
+          if (index === players.length - 1) return;
+          const newPlayers = [...players];
+          const temp = newPlayers[index + 1];
+          newPlayers[index + 1] = newPlayers[index];
+          newPlayers[index] = temp;
+          setPlayers(newPlayers);
+        };
+
+        const handleAddPlayer = (e) => {
+          e.preventDefault();
+          if (!newName.trim()) return;
+          const newP = {
+            id: `p_${Date.now()}`,
+            name: newName.trim(),
+            club: newClub.trim(),
+            seed: newSeed ? parseInt(newSeed) : null
+          };
+          setPlayers([...players, newP]);
+          setNewName(''); setNewClub(''); setNewSeed('');
+        };
+
+        const handleBulkAdd = () => {
+          if (!bulkText.trim()) return;
+          const lines = bulkText.split('\n').filter(l => l.trim().length > 0);
+          const newAdded = lines.map((line, idx) => {
+            const parts = line.split(',');
+            return {
+              id: `p_${Date.now()}_${idx}`,
+              name: parts[0].trim(),
+              club: parts[1] ? parts[1].trim() : '',
+              seed: null
+            };
+          });
+          setPlayers([...players, ...newAdded]);
+          setBulkText('');
+        };
+
+        const handleDelete = (id) => {
+          setPlayers(players.filter(p => p.id !== id));
+        };
+
+        return (
+          <div className="space-y-8">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-800 p-5 rounded-2xl border border-slate-700">
+              <div>
+                <h3 className="text-base font-bold text-white">Kelola Peserta Turnamen</h3>
+                <p className="text-xs text-slate-400">Tambah pemain, atur urutan posisi bagan (#1 s.d #{players.length}), atau gunakan tombol panah untuk memindahkan posisi urutan.</p>
+              </div>
+              <button 
+                onClick={onRegenerate}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-2 shadow-lg"
+              >
+                <Icons.Refresh /> Terapkan & Buat Ulang Bagan
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Add Single Player Form */}
+              <div className="bg-slate-800 p-5 rounded-2xl border border-slate-700 space-y-4">
+                <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Tambah Pemain / Pasangan</h4>
+                <form onSubmit={handleAddPlayer} className="space-y-3">
+                  <div>
+                    <label className="text-xs text-slate-300 block mb-1">Nama Lengkap / Pasangan</label>
+                    <input 
+                      type="text" 
+                      value={newName} 
+                      onChange={e => setNewName(e.target.value)} 
+                      placeholder="Contoh: Marcus / Kevin"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:border-emerald-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-300 block mb-1">Klub / PB / Instansi</label>
+                    <input 
+                      type="text" 
+                      value={newClub} 
+                      onChange={e => setNewClub(e.target.value)} 
+                      placeholder="Contoh: PB Jaya Raya"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:border-emerald-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-300 block mb-1">Nomor Unggulan (Opsional)</label>
+                    <input 
+                      type="number" 
+                      value={newSeed} 
+                      onChange={e => setNewSeed(e.target.value)} 
+                      placeholder="Contoh: 1, 2"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:border-emerald-500 outline-none"
+                    />
+                  </div>
+                  <button type="submit" className="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-bold transition-colors">
+                    + Tambah Ke Daftar
+                  </button>
+                </form>
+
+                {/* Bulk Form */}
+                <div className="border-t border-slate-700 pt-4 space-y-2">
+                  <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Input Sekaligus (Bulk)</h4>
+                  <textarea 
+                    value={bulkText}
+                    onChange={e => setBulkText(e.target.value)}
+                    placeholder="Nama Pemain, Nama Klub (Satu per baris)"
+                    rows="4"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white outline-none focus:border-emerald-500"
+                  ></textarea>
+                  <button onClick={handleBulkAdd} className="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-bold transition-colors">
+                    Tambah Semua Baris
+                  </button>
+                </div>
+              </div>
+
+              {/* Player List Table */}
+              <div className="lg:col-span-2 bg-slate-800 p-5 rounded-2xl border border-slate-700 space-y-4">
+                <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Daftar Terdaftar ({players.length} Pemain)</h4>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-900 text-slate-400 uppercase text-[10px]">
+                      <tr>
+                        <th className="p-2.5 text-center w-20">No. Posisi</th>
+                        <th className="p-2.5">Unggulan</th>
+                        <th className="p-2.5">Nama Pemain</th>
+                        <th className="p-2.5">Klub / PB</th>
+                        <th className="p-2.5 text-right">Urutan & Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-700/60">
+                      {players.map((p, idx) => (
+                        <tr key={p.id} className="hover:bg-slate-700/30">
+                          <td className="p-2.5 text-center">
+                            <span className="px-2.5 py-1 bg-slate-900 text-emerald-400 font-mono font-bold rounded-lg border border-emerald-500/30 text-xs inline-block min-w-[36px]">
+                              #{idx + 1}
+                            </span>
+                          </td>
+                          <td className="p-2.5">
+                            {p.seed ? <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 font-bold rounded">[{p.seed}]</span> : <span className="text-slate-500">-</span>}
+                          </td>
+                          <td className="p-2.5 font-bold text-white">{p.name}</td>
+                          <td className="p-2.5 text-slate-300">{p.club || '-'}</td>
+                          <td className="p-2.5 text-right">
+                            <div className="flex items-center justify-end space-x-1">
+                              <button 
+                                onClick={() => handleMoveUp(idx)} 
+                                disabled={idx === 0}
+                                title="Naikkan Urutan Posisi"
+                                className="p-1.5 bg-slate-700/60 hover:bg-emerald-600 text-slate-200 hover:text-white rounded transition-colors disabled:opacity-20 disabled:hover:bg-slate-700/60"
+                              >
+                                <Icons.Up />
+                              </button>
+                              <button 
+                                onClick={() => handleMoveDown(idx)} 
+                                disabled={idx === players.length - 1}
+                                title="Turunkan Urutan Posisi"
+                                className="p-1.5 bg-slate-700/60 hover:bg-emerald-600 text-slate-200 hover:text-white rounded transition-colors disabled:opacity-20 disabled:hover:bg-slate-700/60"
+                              >
+                                <Icons.Down />
+                              </button>
+                              <button 
+                                onClick={() => handleDelete(p.id)} 
+                                title="Hapus Pemain" 
+                                className="p-1.5 bg-slate-700/60 hover:bg-red-600 text-red-400 hover:text-white rounded transition-colors ml-1"
+                              >
+                                <Icons.Trash />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      function ScoreModal({ match, players, courtCount, onClose, onSave }) {
+        const p1 = players.find(p => p.id === match.player1Id) || { name: 'Pemain 1' };
+        const p2 = players.find(p => p.id === match.player2Id) || { name: 'Pemain 2' };
+
+        const [s1, setS1] = useState(match.score1 || [0, 0, 0]);
+        const [s2, setS2] = useState(match.score2 || [0, 0, 0]);
+        const [court, setCourt] = useState(match.court || 1);
+        const [status, setStatus] = useState(match.status || 'live');
+
+        // Automatic Winner Detection based on BWF Rules (First to 2 sets)
+        const computedWinnerId = useMemo(() => {
+          let p1Sets = 0, p2Sets = 0;
+          for (let i = 0; i < 3; i++) {
+            const sc1 = parseInt(s1[i]) || 0;
+            const sc2 = parseInt(s2[i]) || 0;
+            if (sc1 >= 21 && (sc1 - sc2 >= 2 || sc1 === 30)) p1Sets++;
+            if (sc2 >= 21 && (sc2 - sc1 >= 2 || sc2 === 30)) p2Sets++;
+          }
+          if (p1Sets >= 2) return p1.id;
+          if (p2Sets >= 2) return p2.id;
+          return null;
+        }, [s1, s2]);
+
+        const handleSetChange = (player, setIdx, value) => {
+          const val = Math.min(30, Math.max(0, parseInt(value) || 0));
+          if (player === 1) {
+            const newS1 = [...s1]; newS1[setIdx] = val; setS1(newS1);
+          } else {
+            const newS2 = [...s2]; newS2[setIdx] = val; setS2(newS2);
+          }
+        };
+
+        const handleSubmit = (e) => {
+          e.preventDefault();
+          onSave(match.id, s1, s2, computedWinnerId, parseInt(court), status);
+        };
+
+        return (
+          <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-lg w-full p-6 space-y-6 shadow-2xl">
+              <div className="flex justify-between items-center border-b border-slate-700 pb-3">
+                <h3 className="font-bold text-white text-base">Input / Update Skor Pertandingan #{match.matchNo}</h3>
+                <button onClick={onClose} className="text-slate-400 hover:text-white"><Icons.Close /></button>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Court & Status Selector */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Pilih Lapangan</label>
+                    <select 
+                      value={court} 
+                      onChange={e => setCourt(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white"
+                    >
+                      {Array.from({ length: courtCount }, (_, i) => i + 1).map(c => (
+                        <option key={c} value={c}>Lapangan {c}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Status Pertandingan</label>
+                    <select 
+                      value={status} 
+                      onChange={e => setStatus(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white"
+                    >
+                      <option value="upcoming">Akan Datang</option>
+                      <option value="live">Sedang Berlangsung</option>
+                      <option value="completed">Selesai</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Score Input Matrix */}
+                <div className="space-y-3 bg-slate-900 p-4 rounded-xl border border-slate-700">
+                  <div className="grid grid-cols-4 gap-2 text-center text-xs font-bold text-slate-400 pb-2 border-b border-slate-800">
+                    <span className="text-left col-span-1">Pemain</span>
+                    <span>Set 1</span>
+                    <span>Set 2</span>
+                    <span>Set 3</span>
+                  </div>
+
+                  {/* Player 1 Row */}
+                  <div className="grid grid-cols-4 gap-2 items-center">
+                    <span className="text-xs font-bold text-white truncate">{p1.name}</span>
+                    {[0, 1, 2].map(idx => (
+                      <input 
+                        key={idx}
+                        type="number"
+                        value={s1[idx]}
+                        onChange={e => handleSetChange(1, idx, e.target.value)}
+                        className="bg-slate-800 border border-slate-700 rounded p-2 text-center font-mono font-bold text-emerald-400 text-sm"
+                      />
+                    ))}
+                  </div>
+
+                  {/* Player 2 Row */}
+                  <div className="grid grid-cols-4 gap-2 items-center">
+                    <span className="text-xs font-bold text-white truncate">{p2.name}</span>
+                    {[0, 1, 2].map(idx => (
+                      <input 
+                        key={idx}
+                        type="number"
+                        value={s2[idx]}
+                        onChange={e => handleSetChange(2, idx, e.target.value)}
+                        className="bg-slate-800 border border-slate-700 rounded p-2 text-center font-mono font-bold text-emerald-400 text-sm"
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Detected Winner Banner */}
+                {computedWinnerId && (
+                  <div className="bg-emerald-950/60 border border-emerald-500/40 p-3 rounded-xl text-center">
+                    <p className="text-xs text-emerald-400 font-bold">
+                      Pemenang Terdeteksi: {computedWinnerId === p1.id ? p1.name : p2.name} (Otomatis Maju Babak)
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex space-x-3">
+                  <button type="button" onClick={onClose} className="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-bold">
+                    Batal
+                  </button>
+                  <button type="submit" className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg">
+                    Simpan Hasil Skor
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        );
+      }
+
+      function SetupWizard({ initialConfig, initialPlayers, onClose, onCreate }) {
+        const [title, setTitle] = useState(initialConfig.title);
+        const [category, setCategory] = useState(initialConfig.category);
+        const [format, setFormat] = useState(initialConfig.format);
+        const [courtCount, setCourtCount] = useState(initialConfig.courtCount);
+        const [groupCount, setGroupCount] = useState(2);
+        const [thirdPlaceMatch, setThirdPlaceMatch] = useState(initialConfig.thirdPlaceMatch);
+        const [playerInput, setPlayerInput] = useState(initialPlayers.map(p => p.club ? `${p.name}, ${p.club}` : p.name).join('\n'));
+
+        const handleSubmit = (e) => {
+          e.preventDefault();
+          const parsedPlayers = playerInput.split('\n')
+            .filter(line => line.trim().length > 0)
+            .map((line, idx) => {
+              const parts = line.split(',');
+              return {
+                id: `p_${Date.now()}_${idx}`,
+                name: parts[0].trim(),
+                club: parts[1] ? parts[1].trim() : '',
+                seed: null
+              };
+            });
+
+          onCreate({
+            title, category, format, courtCount: parseInt(courtCount), groupCount: parseInt(groupCount),
+            date: new Date().toISOString().split('T')[0], location: 'GOR Utama', thirdPlaceMatch
+          }, parsedPlayers);
+        };
+
+        return (
+          <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl">
+              <div className="flex justify-between items-center border-b border-slate-700 pb-3">
+                <h3 className="font-bold text-white text-base">Buat Turnamen Bulutangkis Baru</h3>
+                <button onClick={onClose} className="text-slate-400 hover:text-white"><Icons.Close /></button>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="text-xs text-slate-300 block mb-1">Nama Kejuaraan / Turnamen</label>
+                  <input type="text" value={title} onChange={e => setTitle(e.target.value)} required className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-white" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-slate-300 block mb-1">Kategori Pertandingan</label>
+                    <select value={category} onChange={e => setCategory(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-white">
+                      <option value="Tunggal Putra">Tunggal Putra</option>
+                      <option value="Tunggal Putri">Tunggal Putri</option>
+                      <option value="Ganda Putra">Ganda Putra</option>
+                      <option value="Ganda Putri">Ganda Putri</option>
+                      <option value="Ganda Campuran">Ganda Campuran</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-300 block mb-1">Format Sistem Bagan</label>
+                    <select value={format} onChange={e => setFormat(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-white">
+                      <option value="knockout">Sistem Gugur (Knockout)</option>
+                      <option value="group_knockout">Sistem Grup + Gugur</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-slate-300 block mb-1">Jumlah Lapangan Tersedia</label>
+                    <input type="number" min="1" max="12" value={courtCount} onChange={e => setCourtCount(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-white" />
+                  </div>
+                  {format === 'group_knockout' && (
+                    <div>
+                      <label className="text-xs text-slate-300 block mb-1">Jumlah Grup Penyisihan</label>
+                      <input type="number" min="2" max="8" value={groupCount} onChange={e => setGroupCount(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-white" />
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-xs text-slate-300 block mb-1">Daftar Pemain (Satu per baris: Nama, Klub)</label>
+                  <textarea value={playerInput} onChange={e => setPlayerInput(e.target.value)} rows="5" className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-white font-mono" />
+                </div>
+
+                <div className="flex items-center space-x-2 pt-1">
+                  <input type="checkbox" id="thirdPlace" checked={thirdPlaceMatch} onChange={e => setThirdPlaceMatch(e.target.checked)} className="rounded bg-slate-900 border-slate-700 text-emerald-500" />
+                  <label htmlFor="thirdPlace" className="text-xs text-slate-300">Sertakan Pertandingan Perebutan Juara 3</label>
+                </div>
+
+                <div className="flex space-x-3 pt-3">
+                  <button type="button" onClick={onClose} className="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-bold">Batal</button>
+                  <button type="submit" className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg">Generate Turnamen</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        );
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(<App />);
+    </script>
+</body>
+</html>
